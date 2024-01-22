@@ -20,6 +20,7 @@ GHA_TOKEN = os.getenv('GHA_TOKEN')
 NEW_RELIC_LICENSE_KEY = os.getenv('NEW_RELIC_LICENSE_KEY')
 GHA_RUN_ID = os.getenv('GHA_RUN_ID')
 GHA_SERVICE_NAME=os.getenv('GITHUB_REPOSITORY')
+NEW_RELIC_SERVICE_NAME=os.getenv('NEW_RELIC_SERVICE_NAME')
 GITHUB_REPOSITORY_OWNER=os.getenv('GITHUB_REPOSITORY_OWNER')
 GHA_RUN_NAME=os.getenv('GHA_RUN_NAME')
 GITHUB_API_URL=os.getenv('GITHUB_API_URL')
@@ -51,7 +52,7 @@ get_workflow_run_jobs_by_run_id = do_fastcore_decode(api.actions.list_jobs_for_w
 
 #Set OTEL resources
 global_attributes={
-    SERVICE_NAME: GHA_SERVICE_NAME,
+    SERVICE_NAME: NEW_RELIC_SERVICE_NAME,
     "workflow_run_id": GHA_RUN_ID,
     "github.source": "github-exporter",
     "github.resource.type": "span"
@@ -112,11 +113,11 @@ for job in job_lst:
             try:
                 print("Processing step ->",step['name'],"from job",job['name'])
                 # Set steps tracer and logger
-                resource_attributes ={SERVICE_NAME: GHA_SERVICE_NAME,"github.source": "github-exporter","github.resource.type": "span","workflow_run_id": GHA_RUN_ID}
+                resource_attributes ={SERVICE_NAME: NEW_RELIC_SERVICE_NAME,"github.source": "github-exporter","github.resource.type": "span","workflow_run_id": GHA_RUN_ID}
                 resource_log = Resource(attributes=resource_attributes)
                 step_tracer = get_tracer(endpoint, headers, resource_log, "step_tracer")
                 
-                resource_attributes.update(create_resource_attributes(parse_attributes(step,"","step"),GHA_SERVICE_NAME))
+                resource_attributes.update(create_resource_attributes(parse_attributes(step,"","step"),NEW_RELIC_SERVICE_NAME))
                 resource_log = Resource(attributes=resource_attributes)
                 job_logger = get_logger(endpoint,headers,resource_log, "job_logger")
 
@@ -130,7 +131,7 @@ for job in job_lst:
                     step_started_at=step['started_at']            
                         
                 child_1 = step_tracer.start_span(name=str(step['name']),start_time=do_time(step_started_at),context=p_sub_context,kind=trace.SpanKind.CONSUMER)
-                child_1.set_attributes(create_resource_attributes(parse_attributes(step,"","job"),GHA_SERVICE_NAME))
+                child_1.set_attributes(create_resource_attributes(parse_attributes(step,"","job"),NEW_RELIC_SERVICE_NAME))
                 with trace.use_span(child_1, end_on_exit=False):
                     # Parse logs
                     try:
